@@ -10,6 +10,16 @@ type Broker struct {
 }
 
 // NewBroker DOC: ..
-func NewBroker(agent Agent) error {
-	// ..
+func NewBroker(agent Agent) *Broker {
+	return &Broker{agent: agent}
+}
+
+// Connect DOC: ..
+func (b *Broker) Connect() error {
+	return b.agent.Connect()
+}
+
+// Close DOC: ..
+func (b *Broker) Close() {
+	b.agent.Close()
 }

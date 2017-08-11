@@ -1,33 +1,59 @@
 package mcg
 
-// import "github.com/streadway/amqp
+import "github.com/streadway/amqp"
 
 // -----------------------------------------------------------------------------
-// -- AMQPAgent
+// -- AMQPBroker
 // -----------------------------------------------------------------------------
 
-// AMQPAgent DOC: ..
-type AMQPAgent struct {
-	connection *ampq.Connection
+// AMQPBroker DOC: ..
+type AMQPBroker struct {
+	conn *amqp.Connection
 }
 
-// NewAMQPAgent DOC: ..
-func NewAMQPAgent(url string) (*AMQPAgent, error) {
+// NewAMQPBroker DOC: ..
+func NewAMQPBroker(url string) (*Broker, error) {
 	var err error
-	var connection *ampq.Connection
+	var agent *AMQPBroker
 
-	if connection, err = amqp.Dial(url); err != nil {
-		return err
+	if agent, err = NewAMQPBroker(url); err != nil {
+		return nil, err
 	}
 
-	return &AMQPAgent{
-		connection: connection,
+	return NewBroker(agent).Connect(), nil
+}
+
+// ---
+
+// Connect DOC: ..
+func (b *Broker) Connect() error {
+	return b.agent.Connect()
+}
+
+// Close DOC: ..
+func (b *Broker) Close() {
+	b.agent.Close()
+}
+
+// ---
+
+// Send DOC: ..
+func (a *AMQPBroker) Send(path string, message []byte) error {
+	var err error
+	var exchange string
+	var route string
+
+	if exchange, route = ParseAMQPRoute(path); exchange == "" || route == "" {
+		fmt.Errorf("please gimme the thing")
+	}
+
+	if err = ch.ExchangeDeclare("mail", "topic", true, true, false, false, nil); err != nil {
+
 	}
 }
 
 // ---
 
-// NewAMQPBroker DOC: ..
-func NewAMQPBroker(conn string) error {
-	var agent = NewAMQPAgent(conn)
+func ParseAMQPRoute(path) (string, string) {
+
 }

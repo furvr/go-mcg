@@ -6,5 +6,6 @@ package mcg
 
 // Agent DOC: ..
 type Agent interface {
-	Connect(string) error
+	Connect() error
+	Close()
 }
