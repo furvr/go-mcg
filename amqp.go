@@ -8,52 +8,75 @@ import "github.com/streadway/amqp"
 
 // AMQPBroker DOC: ..
 type AMQPBroker struct {
-	conn *amqp.Connection
+	Exchange AMQPExchange `json:"exchange"`
+	url      string
+	conn     *amqp.Connection
+}
+
+// AMQPExchange DOC: ..
+type AMQPExchange struct {
+	Name       string
+	Type       string
+	Durable    bool
+	AutoDelete bool `json:"auto_delete"`
+	Internal   bool
+	NoWait     bool `json:"no_wait"`
+	Arguments  interface{}
 }
 
 // NewAMQPBroker DOC: ..
 func NewAMQPBroker(url string) (*Broker, error) {
-	var err error
-	var agent *AMQPBroker
-
-	if agent, err = NewAMQPBroker(url); err != nil {
-		return nil, err
-	}
-
-	return NewBroker(agent).Connect(), nil
+	var broker = &AMQPBroker{url: url}
+	return broker, broker.Connect()
 }
 
 // ---
 
 // Connect DOC: ..
 func (b *Broker) Connect() error {
-	return b.agent.Connect()
+	var err error
+
+	if b.conn, err = amqp.Dial(b.url); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Close DOC: ..
 func (b *Broker) Close() {
-	b.agent.Close()
+	b.conn.Close()
+}
+
+func (b *Broker) ensure() error {
+	var err error
+
+	if b.conn == nil {
+		if err = b.Connect(); err != nil {
+			return err
+		}
+	}
+
+	return ch.ExchangeDeclare(
+		b.Exchange.Name,
+		b.Exchange.Type,
+		b.Exchange.Durable,
+		b.Exchange.AutoDelete,
+		b.Exchange.Internal,
+		b.Exchange.NoWait,
+		b.Exchange.Arguments,
+	)
 }
 
 // ---
 
 // Send DOC: ..
-func (a *AMQPBroker) Send(path string, message []byte) error {
+func (a *AMQPBroker) Send(key string, message []byte) error {
 	var err error
-	var exchange string
-	var route string
 
-	if exchange, route = ParseAMQPRoute(path); exchange == "" || route == "" {
-		fmt.Errorf("please gimme the thing")
+	if err = b.ensure(); err != nil {
+		return err
 	}
 
-	if err = ch.ExchangeDeclare("mail", "topic", true, true, false, false, nil); err != nil {
-
-	}
-}
-
-// ---
-
-func ParseAMQPRoute(path) (string, string) {
-
+	// ..
 }
