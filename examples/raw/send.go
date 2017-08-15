@@ -16,23 +16,23 @@ func main() {
 	defer ch.Close()
 
 	err = ch.ExchangeDeclare(
-		"mail",  // name
-		"topic", // type
-		true,    // durable
-		false,   // auto-deleted
-		false,   // internal
-		false,   // no-wait
-		nil,     // arguments
+		"sandbox", // name
+		"topic",   // type
+		true,      // durable
+		false,     // auto-deleted
+		false,     // internal
+		false,     // no-wait
+		nil,       // arguments
 	)
 
 	failOnError(err, "Failed to declare a queue")
 
 	body := getUserInput(os.Args)
 	err = ch.Publish(
-		"mail", // exchange
-		"test", // routing key
-		false,  // mandatory
-		false,  // immediate
+		"sandbox", // exchange
+		"test",    // routing key
+		false,     // mandatory
+		false,     // immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        []byte(body),

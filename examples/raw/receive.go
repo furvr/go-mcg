@@ -1,10 +1,10 @@
 package main
 
-import "fmt"
+import "log"
 
 import "github.com/streadway/amqp"
 
-import "github.com/furvr/go-mcg"
+// import "github.com/furvr/go-mcg"
 
 // ---
 
@@ -28,13 +28,13 @@ func main() {
 	defer ch.Close()
 
 	err = ch.ExchangeDeclare(
-		"mail",  // name
-		"topic", // type
-		true,    // durable
-		false,   // auto-deleted
-		false,   // internal
-		false,   // no-wait
-		nil,     // arguments
+		"sandbox", // name
+		"topic",   // type
+		true,      // durable
+		false,     // auto-deleted
+		false,     // internal
+		false,     // no-wait
+		nil,       // arguments
 	)
 
 	q, err := ch.QueueDeclare(
@@ -48,9 +48,9 @@ func main() {
 	failOnError(err, "Failed to declare a queue")
 
 	err = ch.QueueBind(
-		q.Name, // queue name
-		"test", // routing key
-		"mail", // exchange
+		q.Name,    // queue name
+		"test",    // routing key
+		"sandbox", // exchange
 		false,
 		nil,
 	)
