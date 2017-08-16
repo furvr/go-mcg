@@ -12,5 +12,5 @@ type Agent interface {
 
 	// Message Handling
 	Send(string, *Message) error
-	Receive(string) (chan *Message, error)
+	Receive(string, int, HandlerFunc) error
 }

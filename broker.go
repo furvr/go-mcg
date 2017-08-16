@@ -32,21 +32,10 @@ func (b *Broker) Close() {
 }
 
 // Handle DOC: ..
-func (b *Broker) Handle(key string, handlers ...HandlerFunc) {
-	var err error
-	var messages chan *Message
-
-	if messages, err = b.agent.Receive(key); err != nil {
-		panic(fmt.Sprintf("can't receive messages: %v\n", err))
-	}
-
+func (b *Broker) Handle(key string, limit int, handler HandlerFunc) {
 	go func() {
-		for message := range messages {
-			for _, handler := range handlers {
-				if err = handler(message); err != nil {
-					panic(fmt.Sprintf("can't handle message: %v\n", err))
-				}
-			}
+		if err := b.agent.Receive(key, limit, handler); err != nil {
+			panic(fmt.Sprintf("can't receive messages: %v\n", err))
 		}
 	}()
 }
