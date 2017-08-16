@@ -15,7 +15,7 @@ var agent *mcg.AMQPAgent
 func init() {
 	var err error
 
-	if agent, err = mcg.NewAMQPAgent("amqp://ugw_rw:2jM7ddR5KgsSsWXFyv2ecHUS@127.0.0.1:5672", "auth", "mail"); err != nil {
+	if agent, err = mcg.NewAMQPAgent("amqp://ugw_rw:2jM7ddR5KgsSsWXFyv2ecHUS@127.0.0.1:5672", "auth", ""); err != nil {
 		fmt.Errorf("Couldn't connect to AMQP: %v", err)
 	}
 }

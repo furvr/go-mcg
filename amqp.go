@@ -121,7 +121,7 @@ func (a *AMQPAgent) Receive(key string, limit int, handler HandlerFunc) error {
 
 	// TODO: Check that these arguments work for handling work queue messages
 	// ARGS: queue, consumer, auto-ack, exclusive, no-local, no-wait, args
-	if deliveries, err = ch.Consume(queue.Name, "", false, false, false, false, nil); err != nil {
+	if deliveries, err = ch.Consume(queue.Name, "", true, false, false, false, nil); err != nil {
 		return err
 	}
 
@@ -132,7 +132,7 @@ func (a *AMQPAgent) Receive(key string, limit int, handler HandlerFunc) error {
 	for d := range deliveries {
 		if count < limit {
 			go func() {
-				var ack bool
+				// var ack bool
 				var err error
 
 				var message = &Message{
@@ -140,10 +140,10 @@ func (a *AMQPAgent) Receive(key string, limit int, handler HandlerFunc) error {
 				}
 
 				if err = handler(message); err == nil {
-					ack = true
+					// ack = true
 				}
 
-				d.Ack(ack)
+				d.Ack(true)
 			}()
 		}
 	}
@@ -160,13 +160,13 @@ func amqpDeclareTopic(ch *amqp.Channel, topic, queue, key string) (*amqp.Queue, 
 
 	// NOTE: We're only doing this when we successfully instantiate connections.
 	// TODO: Ensure this doesn't drop exchange topics at unexpected times.
-	if err = ch.ExchangeDeclare(topic, "topic", true, false, false, false, nil); err != nil {
+	if err = ch.ExchangeDeclare(topic, "topic", true, true, false, false, nil); err != nil {
 		return nil, err
 	}
 
 	var q amqp.Queue
 
-	if q, err = ch.QueueDeclare(queue, true, false, false, false, nil); err != nil {
+	if q, err = ch.QueueDeclare(queue, true, true, false, false, nil); err != nil {
 		return nil, err
 	}
 
