@@ -1,12 +1,14 @@
 package main
 
+import "os"
 import "fmt"
-
-// import "time"
+import "strings"
 
 import "github.com/furvr/go-mcg"
 
 // ---
+
+var topic string
 
 // TODO: Do we need to close this explicitly (OR ELSE!)?
 var agent *mcg.AMQPAgent
@@ -15,29 +17,63 @@ var agent *mcg.AMQPAgent
 
 func init() {
 	var err error
+	var url = os.Getenv("AMQP_TEST_URL")
 
-	if agent, err = mcg.NewAMQPAgent("amqp://ugw_rw:2jM7ddR5KgsSsWXFyv2ecHUS@127.0.0.1:5672", "auth", ""); err != nil {
+	if topic, err = getTopic(); err != nil {
+		fmt.Printf("Error: Can't get topic: %v\n", err)
+		os.Exit(0)
+	}
+
+	if agent, err = mcg.NewAMQPAgent(url, topic); err != nil {
 		fmt.Errorf("Couldn't connect to AMQP: %v", err)
 	}
 }
 
 func main() {
-	for i, _ := range make([]int, 6) {
-		stutterSend("log.debug", i)
+	var err error
+	var key string
+	var body string
+
+	if key, err = getKey(); err != nil {
+		fmt.Printf("Error: Can't send message: %v\n", err)
+		os.Exit(0)
 	}
 
-	// for i, _ := range make([]int, 6) {
-	// 	stutterSend("dothing", i)
-	// }
-}
+	if body, err = getMessageBody(); err != nil {
+		fmt.Printf("Error: Can't send message: %v\n", err)
+		os.Exit(0)
+	}
 
-func stutterSend(key string, i int) {
 	var message = &mcg.Message{
-		Body: []byte(fmt.Sprintf("Message #%d!", i)),
+		Body: []byte(body),
 	}
 
 	agent.Send(key, message)
 	fmt.Printf("Sent message with key `%v`: %v\n", key, string(message.Body))
+}
 
-	// time.Sleep(time.Duration(1) * time.Second)
+// ---
+
+func getTopic() (string, error) {
+	if len(os.Args) < 2 || os.Args[1] == "" {
+		return "", fmt.Errorf("no topic provided")
+	}
+
+	return os.Args[1], nil
+}
+
+func getKey() (string, error) {
+	if len(os.Args) < 3 || os.Args[2] == "" {
+		return "", fmt.Errorf("no key provided")
+	}
+
+	return os.Args[2], nil
+}
+
+func getMessageBody() (string, error) {
+	if len(os.Args) < 4 || os.Args[3] == "" {
+		return "", fmt.Errorf("no message body provided")
+	}
+
+	return strings.Join(os.Args[3:], " "), nil
 }

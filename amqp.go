@@ -10,30 +10,28 @@ import "github.com/streadway/amqp"
 
 // AMQPAgent DOC: ..
 type AMQPAgent struct {
-	URL   string
+	URL   string `json:"url"`
 	Topic string `json:"topic"`
-	Queue string `json:"queue"`
 	Retry int
 	conn  *amqp.Connection
 }
 
 // NewAMQPAgent DOC: ..
-func NewAMQPAgent(url, topic, queue string) (*AMQPAgent, error) {
+func NewAMQPAgent(url, topic string) (*AMQPAgent, error) {
 	var a = &AMQPAgent{
 		URL:   url,
 		Topic: topic,
-		Queue: queue,
 	}
 
 	return a, a.Connect()
 }
 
 // NewAMQPBroker DOC: ..
-func NewAMQPBroker(url, topic, queue string) (*Broker, error) {
+func NewAMQPBroker(url, topic string) (*Broker, error) {
 	var err error
 	var agent *AMQPAgent
 
-	if agent, err = NewAMQPAgent(url, topic, queue); err != nil {
+	if agent, err = NewAMQPAgent(url, topic); err != nil {
 		return nil, err
 	}
 
@@ -86,13 +84,19 @@ func (a *AMQPAgent) Send(key string, message *Message) error {
 
 	defer ch.Close()
 
-	if _, err = amqpDeclareTopic(ch, a.Topic, a.Queue, key); err != nil {
+	var route = a.Topic + ":" + key
+
+	if _, err = amqpQueueDeclare(ch, route); err != nil {
 		return err
 	}
 
-	var pub = amqp.Publishing{ContentType: "text/plain", Body: message.Body}
+	var pub = amqp.Publishing{
+		DeliveryMode: amqp.Persistent,
+		ContentType:  "text/plain",
+		Body:         message.Body,
+	}
 
-	if err = ch.Publish(a.Topic, key, false, false, pub); err != nil {
+	if err = ch.Publish("", route, false, false, pub); err != nil {
 		return err
 	}
 
@@ -111,68 +115,77 @@ func (a *AMQPAgent) Receive(key string, limit int, handler HandlerFunc) error {
 
 	defer ch.Close()
 
-	var queue *amqp.Queue
-
-	if queue, err = amqpDeclareTopic(ch, a.Topic, a.Queue, key); err != nil {
+	if err = ch.Qos(limit, 0, false); err != nil {
 		return err
 	}
 
+	var route = a.Topic + ":" + key
+
+	if _, err = amqpQueueDeclare(ch, route); err != nil {
+		return err
+	}
+
+	var consumer = route
 	var deliveries <-chan amqp.Delivery
 
 	// TODO: Check that these arguments work for handling work queue messages
 	// ARGS: queue, consumer, auto-ack, exclusive, no-local, no-wait, args
-	if deliveries, err = ch.Consume(queue.Name, "", true, false, false, false, nil); err != nil {
+	if deliveries, err = ch.Consume(route, consumer, false, false, false, false, nil); err != nil {
 		return err
 	}
 
-	// TODO: Replace this with handler error channel
-	var count = 0
-	var forever = make(chan bool)
-
 	for d := range deliveries {
-		if count < limit {
-			go func() {
-				// var ack bool
-				var err error
+		go func(delivery amqp.Delivery) {
+			var message = &Message{
+				Body: d.Body,
+			}
 
-				var message = &Message{
-					Body: d.Body,
-				}
-
-				if err = handler(message); err == nil {
-					// ack = true
-				}
-
-				d.Ack(true)
-			}()
-		}
+			if err := handler(message); err != nil {
+				delivery.Nack(false, true)
+			} else {
+				delivery.Ack(false)
+			}
+		}(d)
 	}
-
-	<-forever
 
 	return nil
 }
 
 // ---
 
-func amqpDeclareTopic(ch *amqp.Channel, topic, queue, key string) (*amqp.Queue, error) {
+func amqpExchangeDeclare(ch *amqp.Channel, topic string) error {
+	// TODO: Ensure this doesn't drop exchange topics at unexpected times.
+	// Args: name, kind, durable, autoDelete, internal, noWait, args
+	return ch.ExchangeDeclare(topic, "topic", true, false, false, false, nil)
+}
+
+func amqpQueueBind(ch *amqp.Channel, topic, key string) (*amqp.Queue, error) {
 	var err error
 
 	// NOTE: We're only doing this when we successfully instantiate connections.
-	// TODO: Ensure this doesn't drop exchange topics at unexpected times.
-	if err = ch.ExchangeDeclare(topic, "topic", true, true, false, false, nil); err != nil {
+	if err = amqpExchangeDeclare(ch, topic); err != nil {
 		return nil, err
 	}
 
-	var q amqp.Queue
+	var queue amqp.Queue
+	var name = topic + ":" + key
 
-	if q, err = ch.QueueDeclare(queue, true, true, false, false, nil); err != nil {
+	// Args: name, durable, autoDelete, exclusive, noWait, args
+	if queue, err = amqpQueueDeclare(ch, name); err != nil {
 		return nil, err
 	}
 
-	if err = ch.QueueBind(q.Name, key, topic, false, nil); err != nil {
+	// Args: name, key, exchange, noWait, args
+	if err = ch.QueueBind(name, key, topic, false, nil); err != nil {
 		return nil, err
 	}
 
-	return &q, nil
+	return &queue, nil
+}
+
+// ---
+
+func amqpQueueDeclare(ch *amqp.Channel, queue string) (amqp.Queue, error) {
+	// Args: name, durable, autoDelete, exclusive, noWait, args
+	return ch.QueueDeclare(queue, true, false, false, false, nil)
 }
