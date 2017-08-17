@@ -45,11 +45,15 @@ func main() {
 	}
 
 	var message = &mcg.Message{
-		Body: []byte(body),
+		Data: map[string]interface{}{
+			"some_key":    body,
+			"and_another": true,
+			"one_more":    40,
+		},
 	}
 
 	agent.Send(key, message)
-	fmt.Printf("Sent message with key `%v`: %v\n", key, string(message.Body))
+	fmt.Printf("Sent message with key `%v`: %v\n", key, message.Data)
 }
 
 // ---

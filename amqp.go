@@ -1,6 +1,7 @@
 package mcg
 
 import "fmt"
+import "encoding/json"
 
 import "github.com/streadway/amqp"
 
@@ -90,10 +91,16 @@ func (a *AMQPAgent) Send(key string, message *Message) error {
 		return err
 	}
 
+	var body []byte
+
+	if body, err = amqpEncodeMessage(message); err != nil {
+		return err
+	}
+
 	var pub = amqp.Publishing{
 		DeliveryMode: amqp.Persistent,
 		ContentType:  "text/plain",
-		Body:         message.Body,
+		Body:         body,
 	}
 
 	if err = ch.Publish("", route, false, false, pub); err != nil {
@@ -135,20 +142,51 @@ func (a *AMQPAgent) Receive(key string, limit int, handler HandlerFunc) error {
 	}
 
 	for d := range deliveries {
-		go func(delivery amqp.Delivery) {
-			var message = &Message{
-				Body: d.Body,
-			}
-
-			if err := handler(message); err != nil {
-				delivery.Nack(false, true)
-			} else {
-				delivery.Ack(false)
-			}
-		}(d)
+		go a.procDelivery(d, handler)
 	}
 
 	return nil
+}
+
+func (a *AMQPAgent) procDelivery(delivery amqp.Delivery, handler HandlerFunc) {
+	var err error
+	var message *Message
+
+	if message, err = amqpDecodeMessage(delivery.Body); err != nil {
+		delivery.Nack(false, false)
+		return
+	}
+
+	if err = handler(message); err != nil {
+		delivery.Nack(false, true)
+		return
+	}
+
+	delivery.Ack(false)
+}
+
+// ---
+
+func amqpDecodeMessage(body []byte) (*Message, error) {
+	var err error
+	var message Message
+
+	if err = json.Unmarshal(body, &message); err != nil {
+		return nil, err
+	}
+
+	return &message, nil
+}
+
+func amqpEncodeMessage(message *Message) ([]byte, error) {
+	var err error
+	var body []byte
+
+	if body, err = json.Marshal(message); err != nil {
+		return nil, err
+	}
+
+	return body, nil
 }
 
 // ---

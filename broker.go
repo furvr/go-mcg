@@ -8,15 +8,16 @@ import "fmt"
 
 // Broker DOC: ..
 type Broker struct {
-	Routes []*Route
-	agent  Agent
-	done   chan bool
+	Agent Agent
+	done  chan bool
 }
 
 // NewBroker DOC: ..
 func NewBroker(agent Agent) *Broker {
-	return &Broker{agent: agent}
+	return &Broker{Agent: agent}
 }
+
+// ---
 
 // Start DOC: ..
 func (b *Broker) Start() {
@@ -26,16 +27,35 @@ func (b *Broker) Start() {
 
 // Close DOC: ..
 func (b *Broker) Close() {
-	if b.agent != nil {
-		b.agent.Close()
+	if b.Agent != nil {
+		b.Agent.Close()
 	}
 }
 
+// ---
+
+// Send DOC: ..
+func (b *Broker) Send(key string, content map[string]interface{}) error {
+	if b.Agent != nil {
+		return fmt.Errorf("agent not defined")
+	}
+
+	return b.Agent.Send(key, &Message{
+		Data: content,
+	})
+}
+
 // Handle DOC: ..
-func (b *Broker) Handle(key string, limit int, handler HandlerFunc) {
-	go func() {
-		if err := b.agent.Receive(key, limit, handler); err != nil {
-			panic(fmt.Sprintf("can't receive messages: %v\n", err))
-		}
-	}()
+func (b *Broker) Handle(key string, limit int, handler HandlerFunc) error {
+	var err_chan chan error
+
+	if b.Agent != nil {
+		go func() {
+			if err := b.Agent.Receive(key, limit, handler); err != nil {
+				err_chan <- err
+			}
+		}()
+	}
+
+	return <-err_chan
 }

@@ -46,10 +46,10 @@ func main() {
 // ---
 
 func testHandler(iter string) mcg.HandlerFunc {
-	return func(msg *mcg.Message) error {
-		fmt.Printf("Starting `%v`: %v\n", iter, string(msg.Body))
+	return func(message *mcg.Message) error {
+		fmt.Printf("Starting `%v`: %v\n", iter, message.Data)
 		time.Sleep(time.Duration(5) * time.Second)
-		fmt.Printf("Finished `%v`: %v\n", iter, string(msg.Body))
+		fmt.Printf("Finished `%v`: %v\n", iter, message.Data)
 
 		return nil // fmt.Errorf("omg wtf man")
 	}

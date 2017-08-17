@@ -4,5 +4,6 @@ package mcg
 
 // Message DOC: ..
 type Message struct {
-	Body []byte
+	Retries int
+	Data    map[string]interface{}
 }
