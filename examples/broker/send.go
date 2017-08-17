@@ -9,6 +9,7 @@ import "github.com/furvr/go-mcg"
 // ---
 
 var topic string
+var key string
 
 // TODO: Do we need to close this explicitly (OR ELSE!)?
 var agent *mcg.AMQPAgent
@@ -24,6 +25,11 @@ func init() {
 		os.Exit(0)
 	}
 
+	if key, err = getKey(); err != nil {
+		fmt.Printf("Error: Can't send message: %v\n", err)
+		os.Exit(0)
+	}
+
 	if agent, err = mcg.NewAMQPAgent(url, topic); err != nil {
 		fmt.Errorf("Couldn't connect to AMQP: %v", err)
 	}
@@ -31,13 +37,7 @@ func init() {
 
 func main() {
 	var err error
-	var key string
 	var body string
-
-	if key, err = getKey(); err != nil {
-		fmt.Printf("Error: Can't send message: %v\n", err)
-		os.Exit(0)
-	}
 
 	if body, err = getMessageBody(); err != nil {
 		fmt.Printf("Error: Can't send message: %v\n", err)

@@ -9,6 +9,7 @@ import "github.com/furvr/go-mcg"
 // ---
 
 var topic string
+var key string
 
 // TODO: Do we need to close this explicitly (OR ELSE!)?
 var agent *mcg.AMQPAgent
@@ -23,6 +24,11 @@ func init() {
 		os.Exit(0)
 	}
 
+	if key, err = getKey(); err != nil {
+		fmt.Printf("Error: Can't send message: %v\n", err)
+		os.Exit(0)
+	}
+
 	var url = os.Getenv("AMQP_TEST_URL")
 
 	if agent, err = mcg.NewAMQPAgent(url, topic); err != nil {
@@ -33,29 +39,20 @@ func init() {
 
 func main() {
 	var broker = mcg.NewBroker(agent)
-
-	broker.Handle("log.debug", 10, testHandlerOne)
-	broker.Handle("dothing", 10, testHandlerTwo)
-
+	broker.Handle(key, 10, testHandler(key))
 	broker.Start()
 }
 
 // ---
 
-func testHandlerOne(msg *mcg.Message) error {
-	return testHandler(msg, "log.debug")
-}
+func testHandler(iter string) mcg.HandlerFunc {
+	return func(msg *mcg.Message) error {
+		fmt.Printf("Starting `%v`: %v\n", iter, string(msg.Body))
+		time.Sleep(time.Duration(5) * time.Second)
+		fmt.Printf("Finished `%v`: %v\n", iter, string(msg.Body))
 
-func testHandlerTwo(msg *mcg.Message) error {
-	return testHandler(msg, "dothing")
-}
-
-func testHandler(msg *mcg.Message, iter string) error {
-	fmt.Printf("Starting `%v`: %v\n", iter, string(msg.Body))
-	time.Sleep(time.Duration(5) * time.Second)
-	fmt.Printf("Finished `%v`: %v\n", iter, string(msg.Body))
-
-	return nil // fmt.Errorf("omg wtf man")
+		return nil // fmt.Errorf("omg wtf man")
+	}
 }
 
 // ---
@@ -66,4 +63,12 @@ func getTopic() (string, error) {
 	}
 
 	return os.Args[1], nil
+}
+
+func getKey() (string, error) {
+	if len(os.Args) < 3 || os.Args[2] == "" {
+		return "", fmt.Errorf("no key provided")
+	}
+
+	return os.Args[2], nil
 }
