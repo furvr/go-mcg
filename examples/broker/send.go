@@ -44,16 +44,16 @@ func main() {
 		os.Exit(0)
 	}
 
-	var message = &mcg.Message{
-		Data: map[string]interface{}{
-			"some_key":    body,
-			"and_another": true,
-			"one_more":    40,
-		},
-	}
+	// var data = map[string]interface{}{
+	// 	"some_key":    body,
+	// 	"and_another": true,
+	// 	"one_more":    40,
+	// }
 
-	agent.Send(key, message)
-	fmt.Printf("Sent message with key `%v`: %v\n", key, message.Data)
+	var data = strings.Split(body, " ")
+
+	agent.Send(key, &mcg.Message{Data: data})
+	fmt.Printf("Sent message with key `%v`: %v\n", key, data)
 }
 
 // ---

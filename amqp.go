@@ -1,6 +1,8 @@
 package mcg
 
 import "fmt"
+import "bytes"
+import "encoding/gob"
 import "encoding/json"
 
 import "github.com/streadway/amqp"
@@ -93,7 +95,7 @@ func (a *AMQPAgent) Send(key string, message *Message) error {
 
 	var body []byte
 
-	if body, err = amqpEncodeMessage(message); err != nil {
+	if body, err = amqpEncodeJSON(message); err != nil {
 		return err
 	}
 
@@ -152,7 +154,7 @@ func (a *AMQPAgent) procDelivery(delivery amqp.Delivery, handler HandlerFunc) {
 	var err error
 	var message *Message
 
-	if message, err = amqpDecodeMessage(delivery.Body); err != nil {
+	if message, err = amqpDecodeJSON(delivery.Body); err != nil {
 		delivery.Nack(false, false)
 		return
 	}
@@ -167,7 +169,18 @@ func (a *AMQPAgent) procDelivery(delivery amqp.Delivery, handler HandlerFunc) {
 
 // ---
 
-func amqpDecodeMessage(body []byte) (*Message, error) {
+func amqpEncodeJSON(message *Message) ([]byte, error) {
+	var err error
+	var body []byte
+
+	if body, err = json.Marshal(message); err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}
+
+func amqpDecodeJSON(body []byte) (*Message, error) {
 	var err error
 	var message Message
 
@@ -178,15 +191,31 @@ func amqpDecodeMessage(body []byte) (*Message, error) {
 	return &message, nil
 }
 
-func amqpEncodeMessage(message *Message) ([]byte, error) {
+func amqpEncodeGOB(message *Message) ([]byte, error) {
 	var err error
-	var body []byte
+	var buf bytes.Buffer
 
-	if body, err = json.Marshal(message); err != nil {
+	if err = gob.NewEncoder(&buf).Encode(message); err != nil {
 		return nil, err
 	}
 
-	return body, nil
+	return buf.Bytes(), nil
+}
+
+func amqpDecodeGOB(body []byte) (*Message, error) {
+	var err error
+	var message *Message
+	var buf bytes.Buffer
+
+	if _, err = buf.Write(body); err != nil {
+		return nil, err
+	}
+
+	if err = gob.NewDecoder(&buf).Decode(message); err != nil {
+		return nil, err
+	}
+
+	return message, nil
 }
 
 // ---
