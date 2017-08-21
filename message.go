@@ -25,4 +25,7 @@ type Context map[string]interface{}
 // -----------------------------------------------------------------------------
 
 // Body DOC: ..
-type Body []byte
+type Body []Part
+
+// Part DOC: ..
+type Part []byte

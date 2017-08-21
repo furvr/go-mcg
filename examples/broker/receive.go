@@ -52,9 +52,15 @@ func main() {
 
 func testHandler(iter string) mcg.HandlerFunc {
 	return func(message *mcg.Message) error {
-		fmt.Printf("Starting `%v`: %v; %v\n", iter, message.Context, string(message.Body))
+		var body []string
+
+		for _, val := range message.Body {
+			body = append(body, string(val))
+		}
+
+		fmt.Printf("Starting `%v`: %v; %v\n", iter, message.Context, body)
 		time.Sleep(time.Duration(5) * time.Second)
-		fmt.Printf("Finished `%v`: %v; %v\n", iter, message.Context, string(message.Body))
+		fmt.Printf("Finished `%v`: %v; %v\n", iter, message.Context, body)
 
 		return nil // fmt.Errorf("omg wtf man")
 	}

@@ -35,14 +35,14 @@ func (b *Broker) Close() error {
 // ---
 
 // Send DOC: ..
-func (b *Broker) Send(key string, context Context, body Body) error {
+func (b *Broker) Send(key string, context Context, parts ...Part) error {
 	if b.agent == nil {
 		return fmt.Errorf("agent not defined")
 	}
 
 	return b.agent.Send(key, &Message{
 		Context: context,
-		Body:    body,
+		Body:    parts,
 	})
 }
 
