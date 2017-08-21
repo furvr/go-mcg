@@ -12,7 +12,7 @@ var topic string
 var key string
 
 // TODO: Do we need to close this explicitly (OR ELSE!)?
-var agent *mcg.AMQPAgent
+var agent mcg.Agent
 
 // ---
 
@@ -38,22 +38,24 @@ func init() {
 func main() {
 	var err error
 	var body string
+	var broker *mcg.Broker
+
+	if broker = mcg.NewBroker(agent); err != nil {
+		fmt.Errorf("Couldn't connect to AMQP: %v", err)
+	}
 
 	if body, err = getMessageBody(); err != nil {
 		fmt.Printf("Error: Can't send message: %v\n", err)
 		os.Exit(0)
 	}
 
-	// var data = map[string]interface{}{
-	// 	"some_key":    body,
-	// 	"and_another": true,
-	// 	"one_more":    40,
-	// }
+	var ctx = mcg.Context{
+		"foo": true,
+		"bar": 40,
+	}
 
-	var data = strings.Split(body, " ")
-
-	agent.Send(key, &mcg.Message{Data: data})
-	fmt.Printf("Sent message with key `%v`: %v\n", key, data)
+	broker.Send(key, ctx, []byte(body))
+	fmt.Printf("Sent message with key `%v`: %v; %v\n", key, ctx, body)
 }
 
 // ---
