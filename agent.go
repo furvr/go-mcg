@@ -6,5 +6,12 @@ package mcg
 
 // Agent DOC: ..
 type Agent interface {
-	Connect(string) error
+	// Working with connections
+	Connect() error
+	Close() error
+	Done() error
+
+	// Message Handling
+	Send(string, *Message) error
+	Receive(string, int, HandlerFunc) error
 }
