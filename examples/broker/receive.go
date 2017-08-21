@@ -54,6 +54,8 @@ func testHandler(iter string) mcg.HandlerFunc {
 	return func(message *mcg.Message) error {
 		var body []string
 
+		// McG bodies are slices containing byte-slices. You can (optionally)
+		// send (and receive) many bodies on a single message.
 		for _, val := range message.Body {
 			body = append(body, string(val))
 		}

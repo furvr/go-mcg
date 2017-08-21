@@ -54,6 +54,9 @@ func main() {
 		"bar": 40,
 	}
 
+	// Key: queue or route (depending on adapter agent)
+	// Context: map of basic data for handler to process job
+	// Body: multiple []byte-based bodies
 	broker.Send(key, ctx, []byte(body))
 	fmt.Printf("Sent message with key `%v`: %v; %v\n", key, ctx, body)
 }
