@@ -38,20 +38,23 @@ func init() {
 }
 
 func main() {
+	var err error
 	var broker = mcg.NewBroker(agent)
+
 	broker.Handle(key, 10, testHandler(key))
-	broker.Start()
+
+	if err = broker.Start(); err != nil {
+		panic(fmt.Errorf("Omfg, broker can't even:", err))
+	}
 }
 
 // ---
 
 func testHandler(iter string) mcg.HandlerFunc {
 	return func(message *mcg.Message) error {
-		var data = message.Data.([]interface{})
-
-		fmt.Printf("Starting `%v`: %v\n", iter, data)
+		fmt.Printf("Starting `%v`: %v; %v\n", iter, message.Context, string(message.Body))
 		time.Sleep(time.Duration(5) * time.Second)
-		fmt.Printf("Finished `%v`: %v\n", iter, data)
+		fmt.Printf("Finished `%v`: %v; %v\n", iter, message.Context, string(message.Body))
 
 		return nil // fmt.Errorf("omg wtf man")
 	}

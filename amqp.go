@@ -16,7 +16,9 @@ type AMQPAgent struct {
 	URL   string `json:"url"`
 	Topic string `json:"topic"`
 	Retry int
-	conn  *amqp.Connection
+
+	conn *amqp.Connection
+	done chan *amqp.Error
 }
 
 // NewAMQPAgent DOC: ..
@@ -43,31 +45,28 @@ func NewAMQPBroker(url, topic string) (*Broker, error) {
 
 // ---
 
-// TODO: Re-try connection when connection fails
+// Connect DOC: ..
 func (a *AMQPAgent) Connect() error {
 	var err error
-	var watcher = make(chan *amqp.Error)
-
-	go func() {
-		var closed = <-watcher
-
-		if err = a.Connect(); err != nil {
-			panic(fmt.Sprintf("amqp went away: %v; and can't come back: %v\n", closed, err))
-		}
-	}()
 
 	if a.conn, err = amqp.Dial(a.URL); err != nil {
 		return err
 	}
 
-	a.conn.NotifyClose(watcher)
+	a.conn.NotifyClose(a.done)
 
 	return nil
 }
 
 // Close DOC: ..
-func (a *AMQPAgent) Close() {
-	a.conn.Close()
+func (a *AMQPAgent) Close() error {
+	return a.conn.Close()
+}
+
+// Done DOC: ..
+func (a *AMQPAgent) Done() error {
+	var err = <-a.done
+	return err
 }
 
 // ---
@@ -155,6 +154,7 @@ func (a *AMQPAgent) procDelivery(delivery amqp.Delivery, handler HandlerFunc) {
 	var message *Message
 
 	if message, err = amqpDecodeJSON(delivery.Body); err != nil {
+		fmt.Printf("Can't decode: %v\n", err)
 		delivery.Nack(false, false)
 		return
 	}

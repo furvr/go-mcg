@@ -8,54 +8,55 @@ import "fmt"
 
 // Broker DOC: ..
 type Broker struct {
-	Agent Agent
-	done  chan bool
+	agent Agent
 }
 
 // NewBroker DOC: ..
 func NewBroker(agent Agent) *Broker {
-	return &Broker{Agent: agent}
+	return &Broker{agent: agent}
 }
 
 // ---
 
 // Start DOC: ..
-func (b *Broker) Start() {
-	b.done = make(chan bool)
-	<-b.done
+func (b *Broker) Start() error {
+	return b.agent.Done()
 }
 
 // Close DOC: ..
-func (b *Broker) Close() {
-	if b.Agent != nil {
-		b.Agent.Close()
+func (b *Broker) Close() error {
+	if b.agent != nil {
+		return b.agent.Close()
 	}
+
+	return fmt.Errorf("no agent found; cannot close any further")
 }
 
 // ---
 
 // Send DOC: ..
-func (b *Broker) Send(key string, content map[string]interface{}) error {
-	if b.Agent != nil {
+func (b *Broker) Send(key string, context Context, body Body) error {
+	if b.agent == nil {
 		return fmt.Errorf("agent not defined")
 	}
 
-	return b.Agent.Send(key, &Message{
-		Data: content,
+	return b.agent.Send(key, &Message{
+		Context: context,
+		Body:    body,
 	})
 }
 
 // Handle DOC: ..
-func (b *Broker) Handle(key string, limit int, handler HandlerFunc) error {
+func (b *Broker) Handle(key string, limit int, handler HandlerFunc) chan error {
 	var err_chan chan error
 
-	if b.Agent != nil {
+	if b.agent != nil {
 		go func() {
-			if err := b.Agent.Receive(key, limit, handler); err != nil {
+			if err := b.agent.Receive(key, limit, handler); err != nil {
 				err_chan <- err
 			}
 		}()
 	}
 
-	return <-err_chan
+	return err_chan
 }
