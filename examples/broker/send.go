@@ -30,7 +30,7 @@ func init() {
 		os.Exit(0)
 	}
 
-	if agent, err = mcg.NewAMQPAgent(url, topic); err != nil {
+	if agent, err = mcg.NewAMQPAgent(url); err != nil {
 		fmt.Errorf("Couldn't connect to AMQP: %v", err)
 	}
 }
@@ -38,11 +38,8 @@ func init() {
 func main() {
 	var err error
 	var body string
-	var broker *mcg.Broker
 
-	if broker = mcg.NewBroker(agent); err != nil {
-		fmt.Errorf("Couldn't connect to AMQP: %v", err)
-	}
+	var broker = mcg.NewBroker(topic, agent)
 
 	if body, err = getMessageBody(); err != nil {
 		fmt.Printf("Error: Can't send message: %v\n", err)

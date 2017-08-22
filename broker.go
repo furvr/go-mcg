@@ -8,12 +8,16 @@ import "fmt"
 
 // Broker DOC: ..
 type Broker struct {
+	Topic string
 	agent Agent
 }
 
 // NewBroker DOC: ..
-func NewBroker(agent Agent) *Broker {
-	return &Broker{agent: agent}
+func NewBroker(topic string, agent Agent) *Broker {
+	return &Broker{
+		Topic: topic,
+		agent: agent,
+	}
 }
 
 // ---
@@ -40,7 +44,7 @@ func (b *Broker) Send(key string, context Context, parts ...Part) error {
 		return fmt.Errorf("agent not defined")
 	}
 
-	return b.agent.Send(key, &Message{
+	return b.agent.Send(b.Topic, key, &Message{
 		Context: context,
 		Body:    parts,
 	})
@@ -52,7 +56,7 @@ func (b *Broker) Handle(key string, limit int, handler HandlerFunc) chan error {
 
 	if b.agent != nil {
 		go func() {
-			if err := b.agent.Receive(key, limit, handler); err != nil {
+			if err := b.agent.Receive(b.Topic, key, limit, handler); err != nil {
 				err_chan <- err
 			}
 		}()

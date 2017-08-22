@@ -12,6 +12,6 @@ type Agent interface {
 	Done() error
 
 	// Message Handling
-	Send(string, *Message) error
-	Receive(string, int, HandlerFunc) error
+	Send(string, string, *Message) error
+	Receive(string, string, int, HandlerFunc) error
 }

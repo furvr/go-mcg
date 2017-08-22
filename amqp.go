@@ -13,8 +13,7 @@ import "github.com/streadway/amqp"
 
 // AMQPAgent DOC: ..
 type AMQPAgent struct {
-	URL   string `json:"url"`
-	Topic string `json:"topic"`
+	URL   string
 	Retry int
 
 	conn *amqp.Connection
@@ -22,12 +21,8 @@ type AMQPAgent struct {
 }
 
 // NewAMQPAgent DOC: ..
-func NewAMQPAgent(url, topic string) (*AMQPAgent, error) {
-	var a = &AMQPAgent{
-		URL:   url,
-		Topic: topic,
-	}
-
+func NewAMQPAgent(url string) (*AMQPAgent, error) {
+	var a = &AMQPAgent{URL: url}
 	return a, a.Connect()
 }
 
@@ -36,11 +31,11 @@ func NewAMQPBroker(url, topic string) (*Broker, error) {
 	var err error
 	var agent *AMQPAgent
 
-	if agent, err = NewAMQPAgent(url, topic); err != nil {
+	if agent, err = NewAMQPAgent(url); err != nil {
 		return nil, err
 	}
 
-	return NewBroker(agent), nil
+	return NewBroker(topic, agent), nil
 }
 
 // ---
@@ -48,6 +43,10 @@ func NewAMQPBroker(url, topic string) (*Broker, error) {
 // Connect DOC: ..
 func (a *AMQPAgent) Connect() error {
 	var err error
+
+	if a.URL == "" {
+		return fmt.Errorf("can't connect with empty url")
+	}
 
 	if a.conn, err = amqp.Dial(a.URL); err != nil {
 		return err
@@ -72,9 +71,9 @@ func (a *AMQPAgent) Done() error {
 // ---
 
 // Send DOC: ..
-func (a *AMQPAgent) Send(key string, message *Message) error {
+func (a *AMQPAgent) Send(topic, key string, message *Message) error {
 	if a.conn == nil {
-		return fmt.Errorf("can't send message to route `%v:%v` to nil connection", a.Topic, key)
+		return fmt.Errorf("can't send message to route `%v:%v` to nil connection", topic, key)
 	}
 
 	var err error
@@ -86,7 +85,7 @@ func (a *AMQPAgent) Send(key string, message *Message) error {
 
 	defer ch.Close()
 
-	var route = a.Topic + ":" + key
+	var route = topic + ":" + key
 
 	if _, err = amqpQueueDeclare(ch, route); err != nil {
 		return err
@@ -113,7 +112,7 @@ func (a *AMQPAgent) Send(key string, message *Message) error {
 
 // Receive DOC: ..
 // TODO: Response value should be error channel
-func (a *AMQPAgent) Receive(key string, limit int, handler HandlerFunc) error {
+func (a *AMQPAgent) Receive(topic, key string, limit int, handler HandlerFunc) error {
 	var err error
 	var ch *amqp.Channel
 
@@ -127,7 +126,7 @@ func (a *AMQPAgent) Receive(key string, limit int, handler HandlerFunc) error {
 		return err
 	}
 
-	var route = a.Topic + ":" + key
+	var route = topic + ":" + key
 
 	if _, err = amqpQueueDeclare(ch, route); err != nil {
 		return err

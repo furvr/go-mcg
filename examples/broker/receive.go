@@ -31,7 +31,7 @@ func init() {
 
 	var url = os.Getenv("AMQP_TEST_URL")
 
-	if agent, err = mcg.NewAMQPAgent(url, topic); err != nil {
+	if agent, err = mcg.NewAMQPAgent(url); err != nil {
 		fmt.Printf("Error: Couldn't connect to AMQP: %v\n", err)
 		os.Exit(0)
 	}
@@ -39,7 +39,7 @@ func init() {
 
 func main() {
 	var err error
-	var broker = mcg.NewBroker(agent)
+	var broker = mcg.NewBroker(topic, agent)
 
 	broker.Handle(key, 10, testHandler(key))
 
