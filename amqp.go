@@ -44,8 +44,12 @@ func NewAMQPBroker(url, topic string) (*Broker, error) {
 func (a *AMQPAgent) Connect() error {
 	var err error
 
+	if a == nil {
+		return fmt.Errorf("unable to connect with nil agent")
+	}
+
 	if a.URL == "" {
-		return fmt.Errorf("can't connect with empty url")
+		return fmt.Errorf("unable to connect with empty url")
 	}
 
 	if a.conn, err = amqp.Dial(a.URL); err != nil {
