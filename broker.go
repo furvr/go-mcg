@@ -3,8 +3,6 @@ package mcg
 import "fmt"
 
 // -----------------------------------------------------------------------------
-// -- Broker
-// -----------------------------------------------------------------------------
 
 // Broker DOC: ..
 type Broker struct {
@@ -12,7 +10,6 @@ type Broker struct {
 	agent Agent
 }
 
-// NewBroker DOC: ..
 func NewBroker(topic string, agent Agent) *Broker {
 	return &Broker{
 		Topic: topic,
@@ -22,23 +19,24 @@ func NewBroker(topic string, agent Agent) *Broker {
 
 // ---
 
-// Start DOC: ..
 func (b *Broker) Start() error {
-	return b.agent.Done()
+	if b.agent != nil {
+		return b.agent.Done()
+	}
+
+	return fmt.Errorf("can't start broker; no agent found")
 }
 
-// Close DOC: ..
 func (b *Broker) Close() error {
 	if b.agent != nil {
 		return b.agent.Close()
 	}
 
-	return fmt.Errorf("no agent found; cannot close any further")
+	return nil
 }
 
 // ---
 
-// Send DOC: ..
 func (b *Broker) Send(key string, context Context, parts ...Part) error {
 	if b.agent == nil {
 		return fmt.Errorf("agent not defined")
@@ -46,11 +44,10 @@ func (b *Broker) Send(key string, context Context, parts ...Part) error {
 
 	return b.agent.Send(b.Topic, key, &Message{
 		Context: context,
-		Body:    parts,
+		Body:    &Body{Parts: parts},
 	})
 }
 
-// Handle DOC: ..
 func (b *Broker) Handle(key string, limit int, handler HandlerFunc) chan error {
 	var err_chan chan error
 
